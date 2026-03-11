@@ -88,9 +88,11 @@
     .main-btn:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .btn-delivery { background: var(--primary); color: white; }
     .btn-visitor  { background: var(--green);   color: white; }
-    .btn-icon  { font-size: 48px; flex-shrink: 0; }
-    .btn-title { font-size: 24px; font-weight: 700; line-height: 1.2; }
-    .btn-desc  { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+    /* ① ボタン内テキスト先頭位置を揃える */
+    .btn-icon  { font-size: 48px; flex-shrink: 0; width: 64px; display: flex; align-items: center; justify-content: center; }
+    .btn-text  { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
+    .btn-title { font-size: 24px; font-weight: 700; line-height: 1.2; text-align: left; width: 100%; }
+    .btn-desc  { font-size: 14px; opacity: 0.85; margin-top: 4px; text-align: left; width: 100%; }
 
     /* ===== 退室ボタン（スタッフ専用） ===== */
     .exit-btn {
@@ -298,6 +300,94 @@
     .radio-label { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; }
     .radio-desc  { font-size: 13px; color: var(--sub); margin-top: 4px; }
 
+    /* ===== ④ セキュリティトグルスイッチ ===== */
+    .security-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin: 32px 0 16px;
+    }
+    .security-toggle {
+      width: 88px; height: 48px;
+      background: #E2E8F0;
+      border-radius: 24px;
+      cursor: pointer;
+      position: relative;
+      transition: background 0.3s;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .security-toggle.on { background: var(--green); }
+    .security-thumb {
+      position: absolute;
+      top: 5px; left: 5px;
+      width: 38px; height: 38px;
+      background: white;
+      border-radius: 50%;
+      transition: left 0.3s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .security-toggle.on .security-thumb { left: 45px; }
+    .security-toggle-label {
+      font-size: 20px; font-weight: 700;
+      color: var(--sub);
+      min-width: 40px;
+    }
+    .security-toggle-label.active { color: var(--green); }
+    .security-status-text {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--sub);
+      margin-bottom: 32px;
+      text-align: center;
+      min-height: 28px;
+    }
+    .security-confirm-btn {
+      width: 100%; max-width: 400px;
+      padding: 20px;
+      background: var(--orange); color: white;
+      border: none; border-radius: 14px;
+      font-size: 18px; font-weight: 700;
+      cursor: pointer;
+    }
+    .security-confirm-btn:active { opacity: 0.85; }
+
+    /* ===== ③ 置き配ポップアップ ===== */
+    .okidashi-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .okidashi-overlay.show { display: flex; }
+    .okidashi-popup {
+      background: white;
+      border-radius: 28px;
+      padding: 44px 36px 36px;
+      max-width: 380px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+      animation: popIn 0.2s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(0.88); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+    .okidashi-icon    { font-size: 60px; margin-bottom: 16px; }
+    .okidashi-title   { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 12px; }
+    .okidashi-message { font-size: 20px; color: var(--primary); font-weight: 700; line-height: 1.6; margin-bottom: 28px; }
+    .okidashi-note    { font-size: 13px; color: var(--sub); margin-bottom: 28px; }
+    .okidashi-ok-btn {
+      width: 100%; padding: 18px;
+      background: var(--primary); color: white;
+      border: none; border-radius: 14px;
+      font-size: 18px; font-weight: 700;
+      cursor: pointer;
+    }
+    .okidashi-ok-btn:active { background: var(--primary-dark); }
+
     /* スクロール対応（設定画面のみ） */
     #page-settings { overflow-y: auto; justify-content: flex-start; padding-top: 100px; }
   </style>
@@ -314,7 +404,7 @@
 
   <button class="main-btn btn-delivery" onclick="goPage('page-delivery')">
     <span class="btn-icon">📦</span>
-    <div>
+    <div class="btn-text">
       <div class="btn-title">荷物の受け渡し</div>
       <div class="btn-desc">配送業者の方はこちら</div>
     </div>
@@ -322,7 +412,7 @@
 
   <button class="main-btn btn-visitor" onclick="goPage('page-visitor')">
     <span class="btn-icon">👤</span>
-    <div>
+    <div class="btn-text">
       <div class="btn-title">来客・お打ち合わせ</div>
       <div class="btn-desc">ご来訪の方はこちら</div>
     </div>
@@ -359,12 +449,16 @@
   <div class="page-desc" id="delivery-type-desc">配送業者名</div>
 
   <div class="delivery-type-wrap">
+    <!-- ③ 置き配を選んだらポップアップ表示 -->
     <label class="radio-card" id="radio-card-okidashi">
-      <input type="radio" name="delivery-type" value="置き配" onchange="updateDeliveryTypeBtn()">
+      <input type="radio" name="delivery-type" value="置き配"
+        onchange="updateDeliveryTypeBtn(); showOkidashiPopup();">
       <div class="radio-card-inner">
         <span class="radio-icon">📬</span>
-        <div class="radio-label">置き配</div>
-        <div class="radio-desc">担当者不要・指定場所に置いてください</div>
+        <div>
+          <div class="radio-label">置き配</div>
+          <div class="radio-desc">担当者不要・指定場所に置いてください</div>
+        </div>
       </div>
     </label>
 
@@ -372,8 +466,10 @@
       <input type="radio" name="delivery-type" value="サイン必要" onchange="updateDeliveryTypeBtn()">
       <div class="radio-card-inner">
         <span class="radio-icon">🖊️</span>
-        <div class="radio-label">サイン必要</div>
-        <div class="radio-desc">担当者のサイン・確認が必要です</div>
+        <div>
+          <div class="radio-label">サイン必要</div>
+          <div class="radio-desc">担当者のサイン・確認が必要です</div>
+        </div>
       </div>
     </label>
   </div>
@@ -382,12 +478,74 @@
     style="max-width:520px; width:100%; margin-top:28px;">通知する</button>
 </div>
 
-<!-- ===== 来客：担当者選択 ===== -->
+<!-- ===== ⑤ 来客：用件選択 ===== -->
 <div id="page-visitor" class="page">
   <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
-  <div class="page-title">担当者を選択してください</div>
-  <div class="page-desc">ご用件の担当者をタップしてください</div>
-  <div id="staff-list"></div>
+  <div class="page-title">ご用件をお選びください</div>
+  <div class="page-desc">あてはまるものをタップしてください</div>
+
+  <button class="sub-btn" style="max-width:520px;" onclick="goPage('page-visitor-appointment')">
+    <span class="si">📅</span>
+    <div style="text-align:left;">
+      <div style="font-size:20px; font-weight:700;">お約束のある方</div>
+      <div style="font-size:13px; color:#64748B; margin-top:2px;">担当者とのご予約がある方</div>
+    </div>
+  </button>
+
+  <button class="sub-btn" style="max-width:520px;" onclick="goPage('page-visitor-walkin')">
+    <span class="si">🤝</span>
+    <div style="text-align:left;">
+      <div style="font-size:20px; font-weight:700;">どなたかご対応ください</div>
+      <div style="font-size:13px; color:#64748B; margin-top:2px;">担当者の指定がない場合</div>
+    </div>
+  </button>
+</div>
+
+<!-- ===== ⑤ 来客：お約束のある方フォーム ===== -->
+<div id="page-visitor-appointment" class="page">
+  <button class="back-btn" onclick="goPage('page-visitor')">← 戻る</button>
+  <div class="page-title">お客様情報を入力してください</div>
+  <div class="page-desc">担当者への通知に使用します</div>
+  <div class="form-wrap">
+    <div class="form-field">
+      <label class="form-label">担当者名 <span style="color:#EF4444">*</span></label>
+      <!-- ② 担当者名はプルダウン -->
+      <select class="form-input" id="appt-staff" onchange="updateApptSubmitBtn()">
+        <option value="">担当者を選択してください</option>
+      </select>
+    </div>
+    <div class="form-field">
+      <!-- ③ 会社名は入力欄のまま -->
+      <label class="form-label">会社名（任意）</label>
+      <input class="form-input" id="appt-company" type="text" placeholder="株式会社〇〇" />
+    </div>
+    <div class="form-field">
+      <!-- ③ お名前は入力欄のまま -->
+      <label class="form-label">お名前 <span style="color:#EF4444">*</span></label>
+      <input class="form-input" id="appt-name" type="text" placeholder="山田 太郎"
+        oninput="updateApptSubmitBtn()" />
+    </div>
+    <button class="form-submit" id="appt-submit" onclick="submitAppointmentForm()" disabled>通知する</button>
+  </div>
+</div>
+
+<!-- ===== ⑤ 来客：どなたかご対応くださいフォーム ===== -->
+<div id="page-visitor-walkin" class="page">
+  <button class="back-btn" onclick="goPage('page-visitor')">← 戻る</button>
+  <div class="page-title">お客様情報を入力してください</div>
+  <div class="page-desc">スタッフへの通知に使用します</div>
+  <div class="form-wrap">
+    <div class="form-field">
+      <label class="form-label">会社名（任意）</label>
+      <input class="form-input" id="walkin-company" type="text" placeholder="株式会社〇〇" />
+    </div>
+    <div class="form-field">
+      <label class="form-label">お名前 <span style="color:#EF4444">*</span></label>
+      <input class="form-input" id="walkin-name" type="text" placeholder="山田 太郎"
+        oninput="updateWalkInSubmitBtn()" />
+    </div>
+    <button class="form-submit" id="walkin-submit" onclick="submitWalkInForm()" disabled>通知する</button>
+  </div>
 </div>
 
 <!-- ===== PINロック（設定用） ===== -->
@@ -450,22 +608,27 @@
   </div>
 </div>
 
-<!-- ===== 来客：会社名・氏名入力 ===== -->
-<div id="page-visitor-form" class="page">
-  <button class="back-btn" onclick="goPage('page-visitor')">← 戻る</button>
-  <div class="page-title">お客様情報を入力してください</div>
-  <div class="page-desc">担当者への通知に使用します</div>
-  <div class="form-wrap">
-    <div class="form-field">
-      <label class="form-label">会社名（任意）</label>
-      <input class="form-input" id="visitor-company" type="text" placeholder="株式会社〇〇" />
+<!-- ===== ④ セキュリティON/OFF ===== -->
+<div id="page-security" class="page">
+  <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
+  <div class="page-title">🔐 セキュリティシステム</div>
+  <div class="page-desc">退室前に電源をON/OFFしてください</div>
+
+  <div class="security-toggle-wrap">
+    <span class="security-toggle-label" id="sec-label-off">OFF</span>
+    <div class="security-toggle on" id="security-toggle" onclick="toggleSecurity()">
+      <div class="security-thumb" id="security-thumb"></div>
     </div>
-    <div class="form-field">
-      <label class="form-label">お名前 <span style="color:#EF4444">*</span></label>
-      <input class="form-input" id="visitor-name" type="text" placeholder="山田 太郎" oninput="updateSubmitBtn()" />
-    </div>
-    <button class="form-submit" id="visitor-submit" onclick="submitVisitorForm()" disabled>通知する</button>
+    <span class="security-toggle-label active" id="sec-label-on">ON</span>
   </div>
+
+  <div class="security-status-text" id="security-status">
+    ✅ セキュリティをONにして退室します
+  </div>
+
+  <button class="security-confirm-btn" onclick="confirmExit()">
+    🚪 退室する
+  </button>
 </div>
 
 <!-- ===== 送信中 ===== -->
@@ -486,7 +649,7 @@
 <div id="page-exit-complete" class="page">
   <div class="done-icon">🚪</div>
   <div class="done-title">退室しました！</div>
-  <div class="done-sub">セキュリティシステムをONにしました。<br>お気をつけてお帰りください。</div>
+  <div class="done-sub" id="exit-done-sub">セキュリティシステムをONにしました。<br>お気をつけてお帰りください。</div>
   <div class="countdown" id="exit-countdown-label">5秒後にトップへ戻ります</div>
 </div>
 
@@ -507,9 +670,19 @@
     <input class="field-input" id="cfg-gas" type="url"
       placeholder="https://script.google.com/macros/s/..." />
 
-    <div class="field-label" style="margin-top: 18px">スタッフ設定（1行1名：名前,役職）</div>
-    <textarea class="field-input" id="cfg-staff"
-      placeholder="竹田よりちか,代表取締役&#10;竹内,総務"></textarea>
+    <!-- ② 担当者リスト管理 -->
+    <div class="field-label" style="margin-top: 28px; font-size:15px; color:var(--text);">👤 担当者リスト（プルダウン用）</div>
+    <div id="staff-list-settings" style="margin-top:8px; margin-bottom:10px;"></div>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+      <input class="field-input" id="new-staff-name" placeholder="名前（例：竹内）"
+        style="flex:2; min-width:120px;" />
+      <input class="field-input" id="new-staff-role" placeholder="役職（任意）"
+        style="flex:1; min-width:80px;" />
+      <button onclick="addStaff()"
+        style="padding:14px 18px; background:var(--primary); color:white; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; white-space:nowrap; flex-shrink:0;">
+        ＋ 追加
+      </button>
+    </div>
 
     <button class="save-btn" onclick="saveSettings()">保存する</button>
     <div class="settings-note">
@@ -519,27 +692,32 @@
   </div>
 </div>
 
+<!-- ===== ③ 置き配ポップアップ ===== -->
+<div class="okidashi-overlay" id="okidashi-overlay">
+  <div class="okidashi-popup">
+    <div class="okidashi-icon">📬</div>
+    <div class="okidashi-title">置き配のご案内</div>
+    <div class="okidashi-message">ドアの左側に<br>置いてください</div>
+    <div class="okidashi-note">ご協力ありがとうございます。<br>「通知する」ボタンを押すとスタッフへ通知が届きます。</div>
+    <button class="okidashi-ok-btn" onclick="closeOkidashiPopup()">確認しました</button>
+  </div>
+</div>
+
 <script>
   // ===== 自動設定（初回起動時） =====
   (function() {
     const AUTO_CONFIGURED_KEY = 'auto_configured_v2';
-    
     if (!localStorage.getItem(AUTO_CONFIGURED_KEY)) {
       // wh_url configured via URL params
       // gas_url configured via URL params
       localStorage.setItem('admin_pin', '1234');
-      localStorage.setItem('staff', JSON.stringify([
-        { name: '竹田よりちか', role: '代表取締役' },
-        { name: '竹田なりみち', role: '事業推進部' },
-        { name: '竹内', role: '総務部' }
-      ]));
       localStorage.setItem(AUTO_CONFIGURED_KEY, 'true');
       console.log('✅ 受付システムv2の設定が完了しました');
     }
 
     const params = new URLSearchParams(window.location.search);
-    if (params.get('wh')) localStorage.setItem('wh_url', decodeURIComponent(params.get('wh')));
-    if (params.get('gas')) localStorage.setItem('gas_url', decodeURIComponent(params.get('gas')));
+    if (params.get('wh'))  localStorage.setItem('wh_url',    decodeURIComponent(params.get('wh')));
+    if (params.get('gas')) localStorage.setItem('gas_url',   decodeURIComponent(params.get('gas')));
     if (params.get('pin')) localStorage.setItem('admin_pin', params.get('pin'));
     if (params.has('wh') || params.has('gas') || params.has('pin')) {
       history.replaceState({}, '', window.location.pathname);
@@ -547,89 +725,118 @@
   })();
 
   // ===== デフォルト設定 =====
+  const DEFAULT_PIN = '1234';
+  const IDLE_TIMEOUT_MS = 10000;
+
+  // ② 担当者デフォルトリスト
   const DEFAULT_STAFF = [
     { name: '竹田よりちか', role: '代表取締役' },
     { name: '竹田なりみち', role: '事業推進部' },
-    { name: '竹内', role: '総務部' },
+    { name: '竹内',         role: '総務部' },
   ];
-
-  const DEFAULT_PIN = '1234';
-  const IDLE_TIMEOUT_MS = 10000; // 10秒
 
   function loadCfg() {
     return {
       webhook: localStorage.getItem('wh_url') || '',
       gas:     localStorage.getItem('gas_url') || '',
       pin:     localStorage.getItem('admin_pin') || DEFAULT_PIN,
-      staff:   JSON.parse(localStorage.getItem('staff') || 'null') || DEFAULT_STAFF,
     };
   }
 
-  function saveSettings() {
-    const url  = document.getElementById('cfg-webhook').value.trim();
-    const gas  = document.getElementById('cfg-gas').value.trim();
-    const pin  = document.getElementById('cfg-pin').value.trim();
-    const raw  = document.getElementById('cfg-staff').value.trim();
-    const staff = raw.split('\n')
-      .map(l => l.trim()).filter(Boolean)
-      .map(l => { const [n, r] = l.split(','); return { name: n?.trim(), role: r?.trim() || '' }; })
-      .filter(s => s.name);
+  // ② 担当者リスト読み書き
+  function loadStaff() {
+    return JSON.parse(localStorage.getItem('staff') || 'null') || DEFAULT_STAFF;
+  }
+  function saveStaff(list) {
+    localStorage.setItem('staff', JSON.stringify(list));
+  }
 
+  // ② 担当者プルダウンを生成
+  function populateStaffDropdown() {
+    const staff = loadStaff();
+    const sel = document.getElementById('appt-staff');
+    sel.innerHTML = '<option value="">担当者を選択してください</option>';
+    staff.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.name;
+      opt.textContent = s.role ? `${s.name}（${s.role}）` : s.name;
+      sel.appendChild(opt);
+    });
+    sel.value = '';
+  }
+
+  // ② 設定画面の担当者リスト表示
+  function renderStaffSettings() {
+    const staff = loadStaff();
+    const container = document.getElementById('staff-list-settings');
+    if (!container) return;
+    if (staff.length === 0) {
+      container.innerHTML = '<p style="color:#94A3B8; font-size:13px; padding:4px 0;">担当者が登録されていません</p>';
+      return;
+    }
+    container.innerHTML = staff.map((s, i) => `
+      <div style="display:flex; align-items:center; justify-content:space-between;
+        padding:10px 14px; background:white; border:2px solid var(--border);
+        border-radius:10px; margin-bottom:6px;">
+        <div>
+          <span style="font-size:15px; font-weight:600; color:var(--text);">${s.name}</span>
+          ${s.role ? `<span style="font-size:12px; color:var(--sub); margin-left:8px;">${s.role}</span>` : ''}
+        </div>
+        <button onclick="removeStaff(${i})"
+          style="padding:6px 14px; background:#FEE2E2; color:#EF4444;
+          border:none; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;">
+          削除
+        </button>
+      </div>
+    `).join('');
+  }
+
+  // ② 担当者追加
+  function addStaff() {
+    const name = document.getElementById('new-staff-name').value.trim();
+    const role = document.getElementById('new-staff-role').value.trim();
+    if (!name) { alert('名前を入力してください'); return; }
+    const list = loadStaff();
+    list.push({ name, role });
+    saveStaff(list);
+    document.getElementById('new-staff-name').value = '';
+    document.getElementById('new-staff-role').value = '';
+    renderStaffSettings();
+  }
+
+  // ② 担当者削除
+  function removeStaff(index) {
+    const list = loadStaff();
+    list.splice(index, 1);
+    saveStaff(list);
+    renderStaffSettings();
+  }
+
+  function saveSettings() {
+    const url = document.getElementById('cfg-webhook').value.trim();
+    const gas = document.getElementById('cfg-gas').value.trim();
+    const pin = document.getElementById('cfg-pin').value.trim();
     localStorage.setItem('wh_url', url);
     localStorage.setItem('gas_url', gas);
     if (pin && /^\d{4}$/.test(pin)) localStorage.setItem('admin_pin', pin);
-    localStorage.setItem('staff', JSON.stringify(staff.length ? staff : DEFAULT_STAFF));
-    renderStaff();
     alert('保存しました ✅');
   }
 
-  // ===== 無操作時の自動戻り機能 =====
+  // ===== 無操作タイムアウト =====
   let _idleTimer = null;
-
   function resetIdleTimer() {
     if (_idleTimer) clearTimeout(_idleTimer);
     const currentPage = document.querySelector('.page.active');
     if (currentPage && currentPage.id !== 'page-home') {
-      _idleTimer = setTimeout(() => {
-        goPage('page-home');
-      }, IDLE_TIMEOUT_MS);
+      _idleTimer = setTimeout(() => goPage('page-home'), IDLE_TIMEOUT_MS);
     }
   }
-
-  // 全ページに操作検知を追加
   document.addEventListener('DOMContentLoaded', () => {
-    document.addEventListener('click', resetIdleTimer);
+    document.addEventListener('click',      resetIdleTimer);
     document.addEventListener('touchstart', resetIdleTimer);
-    document.addEventListener('keydown', resetIdleTimer);
-    document.addEventListener('scroll', resetIdleTimer);
+    document.addEventListener('keydown',    resetIdleTimer);
+    document.addEventListener('scroll',     resetIdleTimer);
   });
-
-  // ===== スタッフリスト描画 =====
-  function renderStaff() {
-    const { staff } = loadCfg();
-    const el = document.getElementById('staff-list');
-    el.innerHTML = '';
-
-    staff.forEach(s => {
-      const btn = document.createElement('button');
-      btn.className = 'staff-btn';
-      btn.innerHTML = `
-        <div>
-          <div class="staff-name">${s.name}</div>
-          ${s.role ? `<div class="staff-role">${s.role}</div>` : ''}
-        </div>
-        <div class="staff-arrow">→</div>`;
-      btn.onclick = () => openVisitorForm(s.name);
-      el.appendChild(btn);
-    });
-
-    const allBtn = document.createElement('button');
-    allBtn.className = 'sub-btn';
-    allBtn.style.maxWidth = '520px';
-    allBtn.innerHTML = '<span class="si">📢</span> どなたかご対応ください';
-    allBtn.onclick = () => openVisitorForm('どなたかご対応いただける方');
-    el.appendChild(allBtn);
-  }
 
   // ===== ページ遷移 =====
   function goPage(id) {
@@ -642,7 +849,19 @@
       document.getElementById('cfg-webhook').value = c.webhook;
       document.getElementById('cfg-gas').value     = c.gas;
       document.getElementById('cfg-pin').value     = '';
-      document.getElementById('cfg-staff').value   = c.staff.map(s => `${s.name},${s.role}`).join('\n');
+      renderStaffSettings(); // ② 担当者リストを表示
+    }
+    // フォームリセット
+    if (id === 'page-visitor-appointment') {
+      populateStaffDropdown(); // ② プルダウンを最新状態に更新
+      document.getElementById('appt-company').value = '';
+      document.getElementById('appt-name').value    = '';
+      document.getElementById('appt-submit').disabled = true;
+    }
+    if (id === 'page-visitor-walkin') {
+      document.getElementById('walkin-company').value = '';
+      document.getElementById('walkin-name').value    = '';
+      document.getElementById('walkin-submit').disabled = true;
     }
   }
 
@@ -660,6 +879,20 @@
     } catch(e) { console.warn('Slack送信エラー:', e); }
   }
 
+  // ===== スプレッドシート記録 =====
+  async function recordToSheet(payload) {
+    const { gas } = loadCfg();
+    if (!gas) return;
+    try {
+      await fetch(gas, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors',
+      });
+    } catch(e) { console.warn('シート記録失敗:', e); }
+  }
+
   // ===== PINロック（設定用） =====
   let _pinBuffer = '';
   function openPinLock() {
@@ -674,13 +907,11 @@
     updatePinDots();
     if (_pinBuffer.length === 4) {
       setTimeout(() => {
-        const correct = loadCfg().pin;
-        if (_pinBuffer === correct) {
+        if (_pinBuffer === loadCfg().pin) {
           goPage('page-settings');
         } else {
           document.getElementById('pin-error').textContent = 'PINが違います';
-          _pinBuffer = '';
-          updatePinDots();
+          _pinBuffer = ''; updatePinDots();
         }
       }, 120);
     }
@@ -691,9 +922,8 @@
     document.getElementById('pin-error').textContent = '';
   }
   function updatePinDots() {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; i++)
       document.getElementById(`dot-${i}`).classList.toggle('filled', i < _pinBuffer.length);
-    }
   }
 
   // ===== 退室用PINロック =====
@@ -710,13 +940,13 @@
     updateExitPinDots();
     if (_exitPinBuffer.length === 4) {
       setTimeout(() => {
-        const correct = loadCfg().pin;
-        if (_exitPinBuffer === correct) {
-          executeExit();
+        if (_exitPinBuffer === loadCfg().pin) {
+          // ④ PIN認証後にセキュリティトグル画面へ
+          initSecurityPage();
+          goPage('page-security');
         } else {
           document.getElementById('exit-pin-error').textContent = 'PINが違います';
-          _exitPinBuffer = '';
-          updateExitPinDots();
+          _exitPinBuffer = ''; updateExitPinDots();
         }
       }, 120);
     }
@@ -727,63 +957,128 @@
     document.getElementById('exit-pin-error').textContent = '';
   }
   function updateExitPinDots() {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 4; i++)
       document.getElementById(`exit-dot-${i}`).classList.toggle('filled', i < _exitPinBuffer.length);
+  }
+
+  // ===== ④ セキュリティトグル =====
+  let _securityOn = true;
+
+  function initSecurityPage() {
+    _securityOn = true;
+    document.getElementById('security-toggle').classList.add('on');
+    document.getElementById('security-status').textContent = '✅ セキュリティをONにして退室します';
+    document.getElementById('security-status').style.color = '#10B981';
+    document.getElementById('sec-label-on').classList.add('active');
+    document.getElementById('sec-label-off').classList.remove('active');
+  }
+
+  function toggleSecurity() {
+    _securityOn = !_securityOn;
+    const toggle = document.getElementById('security-toggle');
+    const status = document.getElementById('security-status');
+    const labelOn  = document.getElementById('sec-label-on');
+    const labelOff = document.getElementById('sec-label-off');
+    if (_securityOn) {
+      toggle.classList.add('on');
+      status.textContent = '✅ セキュリティをONにして退室します';
+      status.style.color = '#10B981';
+      labelOn.classList.add('active');
+      labelOff.classList.remove('active');
+    } else {
+      toggle.classList.remove('on');
+      status.textContent = '⚠️ セキュリティをOFFにして退室します';
+      status.style.color = '#F59E0B';
+      labelOff.classList.add('active');
+      labelOn.classList.remove('active');
     }
   }
 
-  // ===== 退室実行 =====
-  function executeExit() {
+  function confirmExit() {
+    const stateText = _securityOn
+      ? 'セキュリティシステムをONにしました。'
+      : 'セキュリティシステムはOFFのままです。';
+    document.getElementById('exit-done-sub').innerHTML =
+      `${stateText}<br>お気をつけてお帰りください。`;
     goPage('page-exit-complete');
-    // 将来的にIoT機器連携用のWebhook通知をここに追加
-    console.log('🚪 退室処理が実行されました');
+    console.log(`🚪 退室処理: セキュリティ ${_securityOn ? 'ON' : 'OFF'}`);
 
     let sec = 5;
     document.getElementById('exit-countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
-    const exitTimer = setInterval(() => {
+    const t = setInterval(() => {
       sec--;
       document.getElementById('exit-countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
-      if (sec <= 0) { clearInterval(exitTimer); goPage('page-home'); }
+      if (sec <= 0) { clearInterval(t); goPage('page-home'); }
     }, 1000);
   }
 
-  // ===== スプレッドシート記録 =====
-  async function recordToSheet(payload) {
-    const { gas } = loadCfg();
-    if (!gas) return;
-    try {
-      await fetch(gas, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        mode: 'no-cors',
-      });
-    } catch(e) { console.warn('シート記録失敗:', e); }
+  // ===== ③ 置き配ポップアップ =====
+  function showOkidashiPopup() {
+    document.getElementById('okidashi-overlay').classList.add('show');
+  }
+  function closeOkidashiPopup() {
+    document.getElementById('okidashi-overlay').classList.remove('show');
   }
 
-  // ===== 来客フォーム =====
-  let _staffTarget = '';
-  function openVisitorForm(staffName) {
-    _staffTarget = staffName;
-    document.getElementById('visitor-company').value = '';
-    document.getElementById('visitor-name').value = '';
-    document.getElementById('visitor-submit').disabled = true;
-    goPage('page-visitor-form');
+  // ===== ⑤ お約束のある方フォーム =====
+  function updateApptSubmitBtn() {
+    const staff = document.getElementById('appt-staff').value.trim();
+    const name  = document.getElementById('appt-name').value.trim();
+    document.getElementById('appt-submit').disabled = !(staff && name);
   }
-  function updateSubmitBtn() {
-    const name = document.getElementById('visitor-name').value.trim();
-    document.getElementById('visitor-submit').disabled = !name;
+
+  async function submitAppointmentForm() {
+    const staffName   = document.getElementById('appt-staff').value.trim();
+    const company     = document.getElementById('appt-company').value.trim();
+    const visitorName = document.getElementById('appt-name').value.trim();
+    if (!staffName || !visitorName) return;
+    goPage('page-sending');
+    const datetime = getDatetime();
+    const companyLine = company ? `\n• 会社名：${company}` : '';
+    // ⑤ Slackメッセージに区切り線を追加
+    const msg =
+      `\n━━━━━━━━━━━━━━━━━━━━\n` +
+      `👤 *来客のお知らせ（お約束あり）*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `• 日時：${datetime}\n` +
+      `• 担当者：${staffName}\n` +
+      `• 訪問者：${visitorName} 様${companyLine}\n` +
+      `\nエントランスへお越しください。\n` +
+      `━━━━━━━━━━━━━━━━━━━━`;
+    await Promise.all([
+      slackPost(msg),
+      recordToSheet({ datetime, type: '来客（お約束あり）', staff: staffName, company: company || '', visitor: visitorName })
+    ]);
+    showDone('👋', '通知しました！', `${staffName} さんへ連絡しました。\nしばらくお待ちください。`);
   }
-  async function submitVisitorForm() {
-    const company = document.getElementById('visitor-company').value.trim();
-    const visitorName = document.getElementById('visitor-name').value.trim();
+
+  // ===== ⑤ どなたかご対応くださいフォーム =====
+  function updateWalkInSubmitBtn() {
+    const name = document.getElementById('walkin-name').value.trim();
+    document.getElementById('walkin-submit').disabled = !name;
+  }
+
+  async function submitWalkInForm() {
+    const company     = document.getElementById('walkin-company').value.trim();
+    const visitorName = document.getElementById('walkin-name').value.trim();
     if (!visitorName) return;
-    await notifyVisitor(_staffTarget, visitorName, company);
-  }
-
-  function getDatetime() {
-    const now = new Date();
-    return `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    goPage('page-sending');
+    const datetime = getDatetime();
+    const companyLine = company ? `\n• 会社名：${company}` : '';
+    // ⑤ Slackメッセージに区切り線を追加
+    const msg =
+      `\n━━━━━━━━━━━━━━━━━━━━\n` +
+      `🤝 *来客のお知らせ（担当者未定）*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `• 日時：${datetime}\n` +
+      `• 訪問者：${visitorName} 様${companyLine}\n` +
+      `\nどなたかエントランスへお越しください。\n` +
+      `━━━━━━━━━━━━━━━━━━━━`;
+    await Promise.all([
+      slackPost(msg),
+      recordToSheet({ datetime, type: '来客（担当者未定）', staff: '', company: company || '', visitor: visitorName })
+    ]);
+    showDone('🤝', '通知しました！', 'スタッフが参ります。\nしばらくお待ちください。');
   }
 
   // ===== 配送業者選択 → 種別ページへ =====
@@ -809,9 +1104,18 @@
     goPage('page-sending');
     const datetime = getDatetime();
     const typeLabel = deliveryType === '置き配'
-      ? '📬 *置き配* — 指定場所に置いていただいて構いません。'
+      ? '📬 *置き配* — ドアの左側に置いていただいて構いません。'
       : '🖊️ *サイン必要* — 担当者のサイン・確認が必要です。対応をお願いします。';
-    const msg = `📦 *配送業者（${company}）の方がエントランスにいらっしゃいます。*\n• 日時：${datetime}\n• 受け取り方法：${deliveryType}\n${typeLabel}`;
+    // ⑤ Slackメッセージに区切り線を追加
+    const msg =
+      `\n━━━━━━━━━━━━━━━━━━━━\n` +
+      `📦 *配送業者からのお知らせ*\n` +
+      `━━━━━━━━━━━━━━━━━━━━\n` +
+      `• 日時：${datetime}\n` +
+      `• 業者：${company}\n` +
+      `• 受取方法：${deliveryType}\n` +
+      `${typeLabel}\n` +
+      `━━━━━━━━━━━━━━━━━━━━`;
     await slackPost(msg);
     const doneMsg = deliveryType === '置き配'
       ? '置き配でのご対応をお願いしました。\nありがとうございます。'
@@ -819,16 +1123,10 @@
     showDone('📦', '通知しました！', doneMsg);
   }
 
-  async function notifyVisitor(staffName, visitorName, company) {
-    goPage('page-sending');
-    const datetime = getDatetime();
-    const companyLine = company ? `\n• 会社名：${company}` : '';
-    const msg = `👤 *来客の方がエントランスにいらっしゃいます。*\n• 日時：${datetime}\n• 担当者：${staffName}${companyLine}\n• 訪問者：${visitorName} 様\nエントランスへお越しください。`;
-    await Promise.all([
-      slackPost(msg),
-      recordToSheet({ datetime, type: '来客', staff: staffName, company: company || '', visitor: visitorName })
-    ]);
-    showDone('👋', '通知しました！', `${staffName} さんへ連絡しました。\nしばらくお待ちください。`);
+  // ===== 日時取得 =====
+  function getDatetime() {
+    const now = new Date();
+    return `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
   }
 
   // ===== 完了＆カウントダウン =====
@@ -838,7 +1136,6 @@
     document.getElementById('done-title').textContent = title;
     document.getElementById('done-sub').innerHTML     = sub.replace(/\n/g, '<br>');
     goPage('page-complete');
-
     let sec = 10;
     document.getElementById('countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
     if (timer) clearInterval(timer);
@@ -850,7 +1147,6 @@
   }
 
   // ===== 初期化 =====
-  renderStaff();
   resetIdleTimer();
 </script>
 </body>
