@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>受付システム</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --primary: #2563EB;
+      --primary-dark: #1D4ED8;
+      --primary-light: #DBEAFE;
+      --green: #10B981;
+      --green-dark: #059669;
+      --orange: #F59E0B;
+      --bg: #F1F5F9;
+      --card: #FFFFFF;
+      --text: #1E293B;
+      --sub: #64748B;
+      --border: #E2E8F0;
+    }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', sans-serif;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    /* ===== ページ管理 ===== */
+    .page {
+      display: none;
+      position: fixed; inset: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 32px;
+      background: var(--bg);
+    }
+    .page.active { display: flex; }
+
+    /* ===== ヘッダー ===== */
+    .home-header {
+      position: absolute;
+      top: 40px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      white-space: nowrap;
+    }
+    .logo-img {
+      height: 72px;
+      width: auto;
+      object-fit: contain;
+      margin-bottom: 8px;
+    }
+    .logo-name {
+      font-size: 38px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: 1px;
+      margin-bottom: 0;
+    }
+    .welcome {
+      font-size: 24px;
+      color: var(--sub);
+      margin-top: 16px;
+      margin-bottom: 48px;
+    }
+
+    /* ===== メインボタン ===== */
+    .main-btn {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      width: 100%;
+      max-width: 520px;
+      padding: 34px 36px;
+      border: none;
+      border-radius: 24px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    .main-btn:active { transform: scale(0.96); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .btn-delivery { background: var(--primary); color: white; }
+    .btn-visitor  { background: var(--green);   color: white; }
+    .btn-icon  { font-size: 48px; flex-shrink: 0; }
+    .btn-title { font-size: 24px; font-weight: 700; line-height: 1.2; }
+    .btn-desc  { font-size: 14px; opacity: 0.85; margin-top: 4px; }
+
+    /* ===== 退室ボタン（スタッフ専用） ===== */
+    .exit-btn {
+      position: absolute;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 16px 32px;
+      background: var(--orange);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s;
+      box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+    }
+    .exit-btn:active {
+      transform: translateX(-50%) scale(0.96);
+      box-shadow: 0 2px 6px rgba(245,158,11,0.2);
+    }
+
+    /* ===== 戻る／設定ボタン（改善版） ===== */
+    .back-btn, .settings-btn {
+      position: fixed;
+      top: 28px;
+      background: var(--primary-light);
+      border: none;
+      border-radius: 50px;
+      min-width: 80px;
+      height: 48px;
+      padding: 0 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.15);
+      z-index: 100;
+      transition: all 0.12s;
+    }
+    .back-btn:active, .settings-btn:active {
+      transform: scale(0.95);
+      box-shadow: 0 1px 4px rgba(37,99,235,0.12);
+    }
+    .back-btn { left: 28px; }
+    .settings-btn {
+      right: 28px;
+      border-radius: 50%;
+      min-width: 48px;
+      width: 48px;
+      height: 48px;
+      padding: 0;
+      font-size: 20px;
+    }
+
+    /* ===== サブ選択ボタン ===== */
+    .page-title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 8px; text-align: center; }
+    .page-desc  { font-size: 16px; color: var(--sub); margin-bottom: 36px; text-align: center; }
+
+    .sub-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%; max-width: 520px;
+      padding: 22px 28px;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 14px;
+      background: white;
+      cursor: pointer;
+      font-size: 20px; font-weight: 600;
+      color: var(--text);
+      transition: all 0.12s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .sub-btn:active { background: #F1F5F9; transform: scale(0.97); }
+    .sub-btn .si { font-size: 28px; }
+
+    /* ===== 担当者ボタン ===== */
+    .staff-btn {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 520px;
+      padding: 20px 28px;
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      margin-bottom: 14px;
+      background: white;
+      cursor: pointer;
+      transition: all 0.12s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .staff-btn:active { background: #F1F5F9; transform: scale(0.97); }
+    .staff-name { font-size: 20px; font-weight: 700; color: var(--text); }
+    .staff-role { font-size: 14px; color: var(--sub); margin-top: 2px; }
+    .staff-arrow { font-size: 24px; color: var(--sub); }
+
+    /* ===== PINロック ===== */
+    .pin-wrap { width: 100%; max-width: 320px; text-align: center; }
+    .pin-dots { display: flex; justify-content: center; gap: 16px; margin: 28px 0; }
+    .pin-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border); background: white;
+      transition: background 0.15s;
+    }
+    .pin-dot.filled { background: var(--primary); border-color: var(--primary); }
+    .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .pin-key {
+      padding: 20px 0; border: 2px solid var(--border); border-radius: 14px;
+      background: white; font-size: 24px; font-weight: 600; color: var(--text);
+      cursor: pointer; transition: all 0.12s;
+    }
+    .pin-key:active { background: var(--bg); transform: scale(0.95); }
+    .pin-key.del { font-size: 20px; color: var(--sub); }
+    .pin-error { color: #EF4444; font-size: 14px; margin-top: 12px; min-height: 20px; }
+
+    /* ===== 入力フォーム ===== */
+    .form-wrap { width: 100%; max-width: 520px; }
+    .form-field { margin-bottom: 20px; }
+    .form-label { font-size: 14px; font-weight: 600; color: var(--sub); margin-bottom: 8px; display: block; }
+    .form-input {
+      width: 100%; padding: 16px 18px;
+      border: 2px solid var(--border); border-radius: 12px;
+      font-size: 18px; color: var(--text); background: white;
+    }
+    .form-input:focus { outline: none; border-color: var(--green); }
+    .form-submit {
+      width: 100%; padding: 20px;
+      background: var(--green); color: white;
+      border: none; border-radius: 14px;
+      font-size: 18px; font-weight: 700;
+      cursor: pointer; margin-top: 8px;
+    }
+    .form-submit:active { background: var(--green-dark); }
+    .form-submit:disabled { opacity: 0.5; cursor: default; }
+
+    /* ===== 送信中 ===== */
+    .spinner {
+      width: 56px; height: 56px;
+      border: 5px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .sending-text { font-size: 18px; color: var(--sub); }
+
+    /* ===== 完了 ===== */
+    .done-icon  { font-size: 88px; margin-bottom: 24px; }
+    .done-title { font-size: 30px; font-weight: 700; color: var(--text); margin-bottom: 14px; text-align: center; }
+    .done-sub   { font-size: 18px; color: var(--sub); text-align: center; line-height: 1.7; margin-bottom: 36px; }
+    .countdown  {
+      font-size: 15px; color: var(--sub);
+      background: white; border-radius: 100px;
+      padding: 10px 28px;
+      border: 2px solid var(--border);
+    }
+
+    /* ===== 設定画面 ===== */
+    .settings-wrap { width: 100%; max-width: 520px; }
+    .settings-title { font-size: 26px; font-weight: 700; color: var(--text); margin-bottom: 28px; }
+    .field-label { font-size: 13px; font-weight: 600; color: var(--sub); margin-bottom: 6px; margin-top: 18px; }
+    .field-input {
+      width: 100%; padding: 14px 16px;
+      border: 2px solid var(--border); border-radius: 12px;
+      font-size: 15px; color: var(--text); background: white;
+    }
+    .field-input:focus { outline: none; border-color: var(--primary); }
+    textarea.field-input { resize: vertical; min-height: 120px; }
+    .save-btn {
+      width: 100%; padding: 18px;
+      background: var(--primary); color: white;
+      border: none; border-radius: 14px;
+      font-size: 17px; font-weight: 700;
+      cursor: pointer; margin-top: 24px;
+    }
+    .save-btn:active { background: var(--primary-dark); }
+    .settings-note { font-size: 12px; color: var(--sub); margin-top: 12px; text-align: center; line-height: 1.6; }
+
+    /* ===== 配送種別ラジオカード ===== */
+    .delivery-type-wrap { width: 100%; max-width: 520px; display: flex; flex-direction: column; gap: 14px; }
+    .radio-card { display: block; cursor: pointer; }
+    .radio-card input[type="radio"] { display: none; }
+    .radio-card-inner {
+      display: flex; align-items: center; gap: 20px;
+      padding: 24px 28px;
+      border: 3px solid var(--border);
+      border-radius: 16px;
+      background: white;
+      transition: all 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .radio-card:active .radio-card-inner { transform: scale(0.97); }
+    .radio-card input:checked + .radio-card-inner {
+      border-color: var(--primary);
+      background: #EFF6FF;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.15);
+    }
+    .radio-icon { font-size: 36px; flex-shrink: 0; }
+    .radio-label { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; }
+    .radio-desc  { font-size: 13px; color: var(--sub); margin-top: 4px; }
+
+    /* スクロール対応（設定画面のみ） */
+    #page-settings { overflow-y: auto; justify-content: flex-start; padding-top: 100px; }
+  </style>
+</head>
+<body>
+
+<!-- ===== ホーム ===== -->
+<div id="page-home" class="page active">
+  <div class="home-header">
+    <img class="logo-img" src="logo.png" alt="eSTACK ロゴ">
+    <div class="logo-name">eSTACK株式会社</div>
+  </div>
+  <div class="welcome">ようこそ。ご用件を選んでください。</div>
+
+  <button class="main-btn btn-delivery" onclick="goPage('page-delivery')">
+    <span class="btn-icon">📦</span>
+    <div>
+      <div class="btn-title">荷物の受け渡し</div>
+      <div class="btn-desc">配送業者の方はこちら</div>
+    </div>
+  </button>
+
+  <button class="main-btn btn-visitor" onclick="goPage('page-visitor')">
+    <span class="btn-icon">👤</span>
+    <div>
+      <div class="btn-title">来客・お打ち合わせ</div>
+      <div class="btn-desc">ご来訪の方はこちら</div>
+    </div>
+  </button>
+
+  <button class="exit-btn" onclick="openExitPinLock()">🚪 退室（スタッフ専用）</button>
+  <button class="settings-btn" onclick="openPinLock()" title="設定">⚙️</button>
+</div>
+
+<!-- ===== 配送業者選択 ===== -->
+<div id="page-delivery" class="page">
+  <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
+  <div class="page-title">配送業者を選択してください</div>
+  <div class="page-desc">ご利用の配送業者をタップしてください</div>
+
+  <button class="sub-btn" onclick="selectDeliveryCompany('ヤマト運輸')">
+    <span class="si">🐱</span> ヤマト運輸
+  </button>
+  <button class="sub-btn" onclick="selectDeliveryCompany('佐川急便')">
+    <span class="si">🚚</span> 佐川急便
+  </button>
+  <button class="sub-btn" onclick="selectDeliveryCompany('日本郵便')">
+    <span class="si">✉️</span> 日本郵便
+  </button>
+  <button class="sub-btn" onclick="selectDeliveryCompany('その他')">
+    <span class="si">📮</span> その他
+  </button>
+</div>
+
+<!-- ===== 配送種別選択 ===== -->
+<div id="page-delivery-type" class="page">
+  <button class="back-btn" onclick="goPage('page-delivery')">← 戻る</button>
+  <div class="page-title">受け取り方法を選択してください</div>
+  <div class="page-desc" id="delivery-type-desc">配送業者名</div>
+
+  <div class="delivery-type-wrap">
+    <label class="radio-card" id="radio-card-okidashi">
+      <input type="radio" name="delivery-type" value="置き配" onchange="updateDeliveryTypeBtn()">
+      <div class="radio-card-inner">
+        <span class="radio-icon">📬</span>
+        <div class="radio-label">置き配</div>
+        <div class="radio-desc">担当者不要・指定場所に置いてください</div>
+      </div>
+    </label>
+
+    <label class="radio-card" id="radio-card-shonin">
+      <input type="radio" name="delivery-type" value="サイン必要" onchange="updateDeliveryTypeBtn()">
+      <div class="radio-card-inner">
+        <span class="radio-icon">🖊️</span>
+        <div class="radio-label">サイン必要</div>
+        <div class="radio-desc">担当者のサイン・確認が必要です</div>
+      </div>
+    </label>
+  </div>
+
+  <button class="form-submit" id="delivery-type-submit" onclick="submitDeliveryType()" disabled
+    style="max-width:520px; width:100%; margin-top:28px;">通知する</button>
+</div>
+
+<!-- ===== 来客：担当者選択 ===== -->
+<div id="page-visitor" class="page">
+  <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
+  <div class="page-title">担当者を選択してください</div>
+  <div class="page-desc">ご用件の担当者をタップしてください</div>
+  <div id="staff-list"></div>
+</div>
+
+<!-- ===== PINロック（設定用） ===== -->
+<div id="page-pin" class="page">
+  <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
+  <div class="pin-wrap">
+    <div class="page-title">🔒 管理者PIN</div>
+    <div class="page-desc">4桁のPINを入力してください</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot-0"></div>
+      <div class="pin-dot" id="dot-1"></div>
+      <div class="pin-dot" id="dot-2"></div>
+      <div class="pin-dot" id="dot-3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinInput('1')">1</button>
+      <button class="pin-key" onclick="pinInput('2')">2</button>
+      <button class="pin-key" onclick="pinInput('3')">3</button>
+      <button class="pin-key" onclick="pinInput('4')">4</button>
+      <button class="pin-key" onclick="pinInput('5')">5</button>
+      <button class="pin-key" onclick="pinInput('6')">6</button>
+      <button class="pin-key" onclick="pinInput('7')">7</button>
+      <button class="pin-key" onclick="pinInput('8')">8</button>
+      <button class="pin-key" onclick="pinInput('9')">9</button>
+      <button class="pin-key" style="visibility:hidden"></button>
+      <button class="pin-key" onclick="pinInput('0')">0</button>
+      <button class="pin-key del" onclick="pinDelete()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+</div>
+
+<!-- ===== PINロック（退室用） ===== -->
+<div id="page-exit-pin" class="page">
+  <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
+  <div class="pin-wrap">
+    <div class="page-title">🚪 退室確認</div>
+    <div class="page-desc">4桁のPINを入力してください</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="exit-dot-0"></div>
+      <div class="pin-dot" id="exit-dot-1"></div>
+      <div class="pin-dot" id="exit-dot-2"></div>
+      <div class="pin-dot" id="exit-dot-3"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="exitPinInput('1')">1</button>
+      <button class="pin-key" onclick="exitPinInput('2')">2</button>
+      <button class="pin-key" onclick="exitPinInput('3')">3</button>
+      <button class="pin-key" onclick="exitPinInput('4')">4</button>
+      <button class="pin-key" onclick="exitPinInput('5')">5</button>
+      <button class="pin-key" onclick="exitPinInput('6')">6</button>
+      <button class="pin-key" onclick="exitPinInput('7')">7</button>
+      <button class="pin-key" onclick="exitPinInput('8')">8</button>
+      <button class="pin-key" onclick="exitPinInput('9')">9</button>
+      <button class="pin-key" style="visibility:hidden"></button>
+      <button class="pin-key" onclick="exitPinInput('0')">0</button>
+      <button class="pin-key del" onclick="exitPinDelete()">⌫</button>
+    </div>
+    <div class="pin-error" id="exit-pin-error"></div>
+  </div>
+</div>
+
+<!-- ===== 来客：会社名・氏名入力 ===== -->
+<div id="page-visitor-form" class="page">
+  <button class="back-btn" onclick="goPage('page-visitor')">← 戻る</button>
+  <div class="page-title">お客様情報を入力してください</div>
+  <div class="page-desc">担当者への通知に使用します</div>
+  <div class="form-wrap">
+    <div class="form-field">
+      <label class="form-label">会社名（任意）</label>
+      <input class="form-input" id="visitor-company" type="text" placeholder="株式会社〇〇" />
+    </div>
+    <div class="form-field">
+      <label class="form-label">お名前 <span style="color:#EF4444">*</span></label>
+      <input class="form-input" id="visitor-name" type="text" placeholder="山田 太郎" oninput="updateSubmitBtn()" />
+    </div>
+    <button class="form-submit" id="visitor-submit" onclick="submitVisitorForm()" disabled>通知する</button>
+  </div>
+</div>
+
+<!-- ===== 送信中 ===== -->
+<div id="page-sending" class="page">
+  <div class="spinner"></div>
+  <div class="sending-text">担当者に通知しています…</div>
+</div>
+
+<!-- ===== 完了 ===== -->
+<div id="page-complete" class="page">
+  <div class="done-icon" id="done-icon">✅</div>
+  <div class="done-title" id="done-title">通知しました！</div>
+  <div class="done-sub" id="done-sub">担当者が参ります。<br>しばらくお待ちください。</div>
+  <div class="countdown" id="countdown-label">10秒後にトップへ戻ります</div>
+</div>
+
+<!-- ===== 退室完了 ===== -->
+<div id="page-exit-complete" class="page">
+  <div class="done-icon">🚪</div>
+  <div class="done-title">退室しました！</div>
+  <div class="done-sub">セキュリティシステムをONにしました。<br>お気をつけてお帰りください。</div>
+  <div class="countdown" id="exit-countdown-label">5秒後にトップへ戻ります</div>
+</div>
+
+<!-- ===== 設定 ===== -->
+<div id="page-settings" class="page">
+  <button class="back-btn" onclick="goPage('page-home')">← 戻る</button>
+  <div class="settings-wrap">
+    <div class="settings-title">⚙️ 設定</div>
+
+    <div class="field-label">Slack Incoming Webhook URL</div>
+    <input class="field-input" id="cfg-webhook" type="url"
+      placeholder="https://hooks.slack.com/services/..." />
+
+    <div class="field-label">管理者PIN（4桁）</div>
+    <input class="field-input" id="cfg-pin" type="password" maxlength="4" placeholder="デフォルト：1234" inputmode="numeric" />
+
+    <div class="field-label" style="margin-top: 18px">Google スプレッドシート記録 URL（GAS Webアプリ URL）</div>
+    <input class="field-input" id="cfg-gas" type="url"
+      placeholder="https://script.google.com/macros/s/..." />
+
+    <div class="field-label" style="margin-top: 18px">スタッフ設定（1行1名：名前,役職）</div>
+    <textarea class="field-input" id="cfg-staff"
+      placeholder="竹田よりちか,代表取締役&#10;竹内,総務"></textarea>
+
+    <button class="save-btn" onclick="saveSettings()">保存する</button>
+    <div class="settings-note">
+      Webhook URLは Slack App の Incoming Webhooks で取得してください。<br>
+      URLを設定しない場合はテストモード（通知なし）で動作します。
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===== 自動設定（初回起動時） =====
+  (function() {
+    const AUTO_CONFIGURED_KEY = 'auto_configured_v2';
+    
+    if (!localStorage.getItem(AUTO_CONFIGURED_KEY)) {
+      // wh_url configured via URL params
+      // gas_url configured via URL params
+      localStorage.setItem('admin_pin', '1234');
+      localStorage.setItem('staff', JSON.stringify([
+        { name: '竹田よりちか', role: '代表取締役' },
+        { name: '竹田なりみち', role: '事業推進部' },
+        { name: '竹内', role: '総務部' }
+      ]));
+      localStorage.setItem(AUTO_CONFIGURED_KEY, 'true');
+      console.log('✅ 受付システムv2の設定が完了しました');
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('wh')) localStorage.setItem('wh_url', decodeURIComponent(params.get('wh')));
+    if (params.get('gas')) localStorage.setItem('gas_url', decodeURIComponent(params.get('gas')));
+    if (params.get('pin')) localStorage.setItem('admin_pin', params.get('pin'));
+    if (params.has('wh') || params.has('gas') || params.has('pin')) {
+      history.replaceState({}, '', window.location.pathname);
+    }
+  })();
+
+  // ===== デフォルト設定 =====
+  const DEFAULT_STAFF = [
+    { name: '竹田よりちか', role: '代表取締役' },
+    { name: '竹田なりみち', role: '事業推進部' },
+    { name: '竹内', role: '総務部' },
+  ];
+
+  const DEFAULT_PIN = '1234';
+  const IDLE_TIMEOUT_MS = 10000; // 10秒
+
+  function loadCfg() {
+    return {
+      webhook: localStorage.getItem('wh_url') || '',
+      gas:     localStorage.getItem('gas_url') || '',
+      pin:     localStorage.getItem('admin_pin') || DEFAULT_PIN,
+      staff:   JSON.parse(localStorage.getItem('staff') || 'null') || DEFAULT_STAFF,
+    };
+  }
+
+  function saveSettings() {
+    const url  = document.getElementById('cfg-webhook').value.trim();
+    const gas  = document.getElementById('cfg-gas').value.trim();
+    const pin  = document.getElementById('cfg-pin').value.trim();
+    const raw  = document.getElementById('cfg-staff').value.trim();
+    const staff = raw.split('\n')
+      .map(l => l.trim()).filter(Boolean)
+      .map(l => { const [n, r] = l.split(','); return { name: n?.trim(), role: r?.trim() || '' }; })
+      .filter(s => s.name);
+
+    localStorage.setItem('wh_url', url);
+    localStorage.setItem('gas_url', gas);
+    if (pin && /^\d{4}$/.test(pin)) localStorage.setItem('admin_pin', pin);
+    localStorage.setItem('staff', JSON.stringify(staff.length ? staff : DEFAULT_STAFF));
+    renderStaff();
+    alert('保存しました ✅');
+  }
+
+  // ===== 無操作時の自動戻り機能 =====
+  let _idleTimer = null;
+
+  function resetIdleTimer() {
+    if (_idleTimer) clearTimeout(_idleTimer);
+    const currentPage = document.querySelector('.page.active');
+    if (currentPage && currentPage.id !== 'page-home') {
+      _idleTimer = setTimeout(() => {
+        goPage('page-home');
+      }, IDLE_TIMEOUT_MS);
+    }
+  }
+
+  // 全ページに操作検知を追加
+  document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('click', resetIdleTimer);
+    document.addEventListener('touchstart', resetIdleTimer);
+    document.addEventListener('keydown', resetIdleTimer);
+    document.addEventListener('scroll', resetIdleTimer);
+  });
+
+  // ===== スタッフリスト描画 =====
+  function renderStaff() {
+    const { staff } = loadCfg();
+    const el = document.getElementById('staff-list');
+    el.innerHTML = '';
+
+    staff.forEach(s => {
+      const btn = document.createElement('button');
+      btn.className = 'staff-btn';
+      btn.innerHTML = `
+        <div>
+          <div class="staff-name">${s.name}</div>
+          ${s.role ? `<div class="staff-role">${s.role}</div>` : ''}
+        </div>
+        <div class="staff-arrow">→</div>`;
+      btn.onclick = () => openVisitorForm(s.name);
+      el.appendChild(btn);
+    });
+
+    const allBtn = document.createElement('button');
+    allBtn.className = 'sub-btn';
+    allBtn.style.maxWidth = '520px';
+    allBtn.innerHTML = '<span class="si">📢</span> どなたかご対応ください';
+    allBtn.onclick = () => openVisitorForm('どなたかご対応いただける方');
+    el.appendChild(allBtn);
+  }
+
+  // ===== ページ遷移 =====
+  function goPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    resetIdleTimer();
+
+    if (id === 'page-settings') {
+      const c = loadCfg();
+      document.getElementById('cfg-webhook').value = c.webhook;
+      document.getElementById('cfg-gas').value     = c.gas;
+      document.getElementById('cfg-pin').value     = '';
+      document.getElementById('cfg-staff').value   = c.staff.map(s => `${s.name},${s.role}`).join('\n');
+    }
+  }
+
+  // ===== Slack 通知 =====
+  async function slackPost(text) {
+    const { webhook } = loadCfg();
+    if (!webhook) { console.log('[TEST MODE]', text); return; }
+    try {
+      await fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+        mode: 'no-cors',
+      });
+    } catch(e) { console.warn('Slack送信エラー:', e); }
+  }
+
+  // ===== PINロック（設定用） =====
+  let _pinBuffer = '';
+  function openPinLock() {
+    _pinBuffer = '';
+    updatePinDots();
+    document.getElementById('pin-error').textContent = '';
+    goPage('page-pin');
+  }
+  function pinInput(digit) {
+    if (_pinBuffer.length >= 4) return;
+    _pinBuffer += digit;
+    updatePinDots();
+    if (_pinBuffer.length === 4) {
+      setTimeout(() => {
+        const correct = loadCfg().pin;
+        if (_pinBuffer === correct) {
+          goPage('page-settings');
+        } else {
+          document.getElementById('pin-error').textContent = 'PINが違います';
+          _pinBuffer = '';
+          updatePinDots();
+        }
+      }, 120);
+    }
+  }
+  function pinDelete() {
+    _pinBuffer = _pinBuffer.slice(0, -1);
+    updatePinDots();
+    document.getElementById('pin-error').textContent = '';
+  }
+  function updatePinDots() {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`dot-${i}`).classList.toggle('filled', i < _pinBuffer.length);
+    }
+  }
+
+  // ===== 退室用PINロック =====
+  let _exitPinBuffer = '';
+  function openExitPinLock() {
+    _exitPinBuffer = '';
+    updateExitPinDots();
+    document.getElementById('exit-pin-error').textContent = '';
+    goPage('page-exit-pin');
+  }
+  function exitPinInput(digit) {
+    if (_exitPinBuffer.length >= 4) return;
+    _exitPinBuffer += digit;
+    updateExitPinDots();
+    if (_exitPinBuffer.length === 4) {
+      setTimeout(() => {
+        const correct = loadCfg().pin;
+        if (_exitPinBuffer === correct) {
+          executeExit();
+        } else {
+          document.getElementById('exit-pin-error').textContent = 'PINが違います';
+          _exitPinBuffer = '';
+          updateExitPinDots();
+        }
+      }, 120);
+    }
+  }
+  function exitPinDelete() {
+    _exitPinBuffer = _exitPinBuffer.slice(0, -1);
+    updateExitPinDots();
+    document.getElementById('exit-pin-error').textContent = '';
+  }
+  function updateExitPinDots() {
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`exit-dot-${i}`).classList.toggle('filled', i < _exitPinBuffer.length);
+    }
+  }
+
+  // ===== 退室実行 =====
+  function executeExit() {
+    goPage('page-exit-complete');
+    // 将来的にIoT機器連携用のWebhook通知をここに追加
+    console.log('🚪 退室処理が実行されました');
+
+    let sec = 5;
+    document.getElementById('exit-countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
+    const exitTimer = setInterval(() => {
+      sec--;
+      document.getElementById('exit-countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
+      if (sec <= 0) { clearInterval(exitTimer); goPage('page-home'); }
+    }, 1000);
+  }
+
+  // ===== スプレッドシート記録 =====
+  async function recordToSheet(payload) {
+    const { gas } = loadCfg();
+    if (!gas) return;
+    try {
+      await fetch(gas, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        mode: 'no-cors',
+      });
+    } catch(e) { console.warn('シート記録失敗:', e); }
+  }
+
+  // ===== 来客フォーム =====
+  let _staffTarget = '';
+  function openVisitorForm(staffName) {
+    _staffTarget = staffName;
+    document.getElementById('visitor-company').value = '';
+    document.getElementById('visitor-name').value = '';
+    document.getElementById('visitor-submit').disabled = true;
+    goPage('page-visitor-form');
+  }
+  function updateSubmitBtn() {
+    const name = document.getElementById('visitor-name').value.trim();
+    document.getElementById('visitor-submit').disabled = !name;
+  }
+  async function submitVisitorForm() {
+    const company = document.getElementById('visitor-company').value.trim();
+    const visitorName = document.getElementById('visitor-name').value.trim();
+    if (!visitorName) return;
+    await notifyVisitor(_staffTarget, visitorName, company);
+  }
+
+  function getDatetime() {
+    const now = new Date();
+    return `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  }
+
+  // ===== 配送業者選択 → 種別ページへ =====
+  let _selectedDeliveryCompany = '';
+  function selectDeliveryCompany(company) {
+    _selectedDeliveryCompany = company;
+    document.getElementById('delivery-type-desc').textContent = `配送業者：${company}`;
+    document.querySelectorAll('input[name="delivery-type"]').forEach(r => r.checked = false);
+    document.getElementById('delivery-type-submit').disabled = true;
+    goPage('page-delivery-type');
+  }
+  function updateDeliveryTypeBtn() {
+    const selected = document.querySelector('input[name="delivery-type"]:checked');
+    document.getElementById('delivery-type-submit').disabled = !selected;
+  }
+  function submitDeliveryType() {
+    const selected = document.querySelector('input[name="delivery-type"]:checked');
+    if (!selected) return;
+    notifyDelivery(_selectedDeliveryCompany, selected.value);
+  }
+
+  async function notifyDelivery(company, deliveryType) {
+    goPage('page-sending');
+    const datetime = getDatetime();
+    const typeLabel = deliveryType === '置き配'
+      ? '📬 *置き配* — 指定場所に置いていただいて構いません。'
+      : '🖊️ *サイン必要* — 担当者のサイン・確認が必要です。対応をお願いします。';
+    const msg = `📦 *配送業者（${company}）の方がエントランスにいらっしゃいます。*\n• 日時：${datetime}\n• 受け取り方法：${deliveryType}\n${typeLabel}`;
+    await slackPost(msg);
+    const doneMsg = deliveryType === '置き配'
+      ? '置き配でのご対応をお願いしました。\nありがとうございます。'
+      : '担当者が参ります。\nしばらくお待ちください。';
+    showDone('📦', '通知しました！', doneMsg);
+  }
+
+  async function notifyVisitor(staffName, visitorName, company) {
+    goPage('page-sending');
+    const datetime = getDatetime();
+    const companyLine = company ? `\n• 会社名：${company}` : '';
+    const msg = `👤 *来客の方がエントランスにいらっしゃいます。*\n• 日時：${datetime}\n• 担当者：${staffName}${companyLine}\n• 訪問者：${visitorName} 様\nエントランスへお越しください。`;
+    await Promise.all([
+      slackPost(msg),
+      recordToSheet({ datetime, type: '来客', staff: staffName, company: company || '', visitor: visitorName })
+    ]);
+    showDone('👋', '通知しました！', `${staffName} さんへ連絡しました。\nしばらくお待ちください。`);
+  }
+
+  // ===== 完了＆カウントダウン =====
+  let timer = null;
+  function showDone(icon, title, sub) {
+    document.getElementById('done-icon').textContent  = icon;
+    document.getElementById('done-title').textContent = title;
+    document.getElementById('done-sub').innerHTML     = sub.replace(/\n/g, '<br>');
+    goPage('page-complete');
+
+    let sec = 10;
+    document.getElementById('countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
+    if (timer) clearInterval(timer);
+    timer = setInterval(() => {
+      sec--;
+      document.getElementById('countdown-label').textContent = `${sec}秒後にトップへ戻ります`;
+      if (sec <= 0) { clearInterval(timer); goPage('page-home'); }
+    }, 1000);
+  }
+
+  // ===== 初期化 =====
+  renderStaff();
+  resetIdleTimer();
+</script>
+</body>
+</html>
